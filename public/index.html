@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYNTHΛ · Sistema de Búsqueda</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        .logout-btn {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 100;
+            background: rgba(18, 25, 45, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 242, 255, 0.3);
+            border-radius: 40px;
+            padding: 0.5rem 1.2rem;
+            color: #eef5ff;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.85rem;
+        }
+        .logout-btn:hover { border-color: #ff3355; color: #ff3355; }
+        .user-badge {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 100;
+            background: rgba(0, 242, 255, 0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 40px;
+            padding: 0.4rem 1rem;
+            font-size: 0.8rem;
+        }
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1a2a3a;
+            padding: 0.7rem 1.5rem;
+            border-radius: 48px;
+            color: white;
+            transition: transform 0.3s;
+            border: 1px solid #00f2ff;
+            z-index: 1000;
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+    <div class="glass-bg"></div>
+    
+    <div class="user-badge" id="userBadge">
+        <i class="fas fa-user-circle"></i> <span id="usernameDisplay">Cargando...</span>
+    </div>
+    <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
+    
+    <div class="container">
+        <header class="header">
+            <div class="logo-container">
+                <div class="glitch-wrapper">
+                    <span class="glitch" data-text="SYNTHΛ">SYNTHΛ</span>
+                </div>
+                <p class="tagline">Búsqueda inteligente | <span id="file-status">📁 Conectando...</span></p>
+            </div>
+        </header>
+
+        <div class="search-panel">
+            <div class="search-tabs">
+                <button class="tab-btn active" data-tab="domain"><i class="fas fa-globe"></i> Dominio</button>
+                <button class="tab-btn" data-tab="email"><i class="fas fa-envelope"></i> Email</button>
+                <button class="tab-btn" data-tab="line"><i class="fas fa-hashtag"></i> Línea</button>
+            </div>
+
+            <div class="tab-content active" id="tab-domain">
+                <div class="input-group">
+                    <div class="input-icon"><i class="fas fa-link"></i></div>
+                    <input type="text" id="domainInput" placeholder="Ej: voyo.protv.ro">
+                    <button class="btn btn-primary" id="searchDomainBtn"><i class="fas fa-search"></i> Buscar</button>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-email">
+                <div class="input-group">
+                    <div class="input-icon"><i class="fas fa-at"></i></div>
+                    <input type="text" id="emailInput" placeholder="Ej: usuario@ejemplo.com">
+                    <button class="btn btn-primary" id="searchEmailBtn"><i class="fas fa-search"></i> Buscar</button>
+                </div>
+            </div>
+
+            <div class="tab-content" id="tab-line">
+                <div class="input-group">
+                    <div class="input-icon"><i class="fas fa-grip-lines"></i></div>
+                    <input type="number" id="lineInput" placeholder="Número de línea">
+                    <button class="btn btn-primary" id="searchLineBtn"><i class="fas fa-search"></i> Buscar</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <div class="results-header">
+                <h3><i class="fas fa-chart-line"></i> Resultados</h3>
+                <div class="results-actions">
+                    <span class="results-count" id="resultsCount">0 resultados</span>
+                    <button class="btn-icon" id="copyAllBtn"><i class="fas fa-copy"></i></button>
+                    <button class="btn-icon" id="exportBtn"><i class="fas fa-download"></i></button>
+                </div>
+            </div>
+            <div class="results-container" id="resultsContainer">
+                <div class="empty-state"><i class="fas fa-search"></i><p>Realiza una búsqueda</p></div>
+            </div>
+        </div>
+        
+        <div class="footer-stats">
+            <div class="stat-badge"><i class="fas fa-database"></i> <span id="totalCreds">0</span> credenciales</div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // ==================== VERIFICACIÓN DE SESIÓN ====================
+        const TOKEN = localStorage.getItem('authToken');
+        
+        if (!TOKEN) {
+            window.location.href = '/login.html';
+        }
+        
+        // Mostrar usuario
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            try {
+                const user = JSON.parse(userData);
+                document.getElementById('usernameDisplay').innerText = user.username || user.email;
+            } catch(e) {}
+        }
+        
+        // Verificar token con el servidor
+        async function checkSession() {
+            try {
+                const res = await fetch('/api/verify', {
+                    method: 'POST',
+                    headers: { 'X-Auth-Token': TOKEN }
+                });
+                if (!res.ok) {
+                    localStorage.removeItem('authToken');
+                    localStorage.removeItem('user');
+                    window.location.href = '/login.html';
+                }
+            } catch(e) {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('user');
+                window.location.href = '/login.html';
+            }
+        }
+        
+        // Logout
+        document.getElementById('logoutBtn').onclick = () => {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('user');
+            window.location.href = '/login.html';
+        };
+        
+        // ==================== VARIABLES ====================
+        let currentResults = [];
+        const toast = document.getElementById('toast');
+        
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        function renderResults(results, searchTerm) {
+            currentResults = results;
+            const container = document.getElementById('resultsContainer');
+            const countSpan = document.getElementById('resultsCount');
+            
+            if (!results || results.length === 0) {
+                container.innerHTML = `<div class="empty-state"><i class="fas fa-ban"></i><p>No se encontraron resultados para "${escapeHtml(searchTerm)}"</p></div>`;
+                countSpan.textContent = '0 resultados';
+                return;
+            }
+            
+            const html = results.map(r => `
+                <div class="result-card">
+                    <div class="result-content">${escapeHtml(r.line)}</div>
+                    <div class="result-badge">ID: ${r.id}</div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+            countSpan.textContent = `${results.length} resultado${results.length !== 1 ? 's' : ''}`;
+        }
+        
+        // ==================== API CALLS ====================
+        async function fetchStats() {
+            try {
+                const res = await fetch('/api/stats');
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('totalCreds').innerText = data.total_credentials.toLocaleString();
+                    document.getElementById('file-status').innerHTML = `✅ ${data.total_credentials.toLocaleString()} credenciales`;
+                }
+            } catch(e) {}
+        }
+        
+        async function searchByDomain(domain) {
+            if (!domain) { showToast('Ingresa un dominio'); return; }
+            showToast(`🔍 Buscando...`);
+            try {
+                const res = await fetch(`/api/search/domain?q=${encodeURIComponent(domain)}`, {
+                    headers: { 'X-Auth-Token': TOKEN }
+                });
+                if (res.status === 401 || res.status === 403) {
+                    localStorage.removeItem('authToken');
+                    window.location.href = '/login.html';
+                    return;
+                }
+                const data = await res.json();
+                renderResults(data.results.map(r => ({ line: r.line, id: r.id })), domain);
+            } catch(e) { showToast('Error de conexión'); }
+        }
+        
+        async function searchByEmail(email) {
+            if (!email) { showToast('Ingresa un email'); return; }
+            if (!email.includes('@')) { showToast('Email inválido'); return; }
+            showToast(`🔍 Buscando...`);
+            try {
+                const res = await fetch(`/api/search/email?q=${encodeURIComponent(email)}`, {
+                    headers: { 'X-Auth-Token': TOKEN }
+                });
+                if (res.status === 401 || res.status === 403) {
+                    localStorage.removeItem('authToken');
+                    window.location.href = '/login.html';
+                    return;
+                }
+                const data = await res.json();
+                renderResults(data.results.map(r => ({ line: r.line, id: r.id })), email);
+            } catch(e) { showToast('Error de conexión'); }
+        }
+        
+        async function searchByLine(num) {
+            if (!num || num < 1) { showToast('Número de línea inválido'); return; }
+            showToast(`🔍 Buscando línea ${num}...`);
+            try {
+                const res = await fetch(`/api/search/line?num=${num}`, {
+                    headers: { 'X-Auth-Token': TOKEN }
+                });
+                if (res.status === 401 || res.status === 403) {
+                    localStorage.removeItem('authToken');
+                    window.location.href = '/login.html';
+                    return;
+                }
+                const data = await res.json();
+                if (data.result) {
+                    renderResults([{ line: data.result.line, id: data.result.id }], `línea ${num}`);
+                } else {
+                    renderResults([], `línea ${num}`);
+                }
+            } catch(e) { showToast('Error de conexión'); }
+        }
+        
+        function copyAllResults() {
+            if (!currentResults.length) { showToast('No hay resultados'); return; }
+            const text = currentResults.map(r => r.line).join('\n');
+            navigator.clipboard.writeText(text);
+            showToast(`📋 Copiados ${currentResults.length} resultados`);
+        }
+        
+        function exportResults() {
+            if (!currentResults.length) { showToast('No hay resultados'); return; }
+            const blob = new Blob([currentResults.map(r => r.line).join('\n')], { type: 'text/plain' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `resultados_${Date.now()}.txt`;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            showToast('📥 Exportado');
+        }
+        
+        // ==================== EVENTOS ====================
+        document.getElementById('searchDomainBtn').onclick = () => searchByDomain(document.getElementById('domainInput').value.trim());
+        document.getElementById('searchEmailBtn').onclick = () => searchByEmail(document.getElementById('emailInput').value.trim());
+        document.getElementById('searchLineBtn').onclick = () => searchByLine(parseInt(document.getElementById('lineInput').value));
+        document.getElementById('copyAllBtn').onclick = copyAllResults;
+        document.getElementById('exportBtn').onclick = exportResults;
+        
+        // Enter keys
+        document.getElementById('domainInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') searchByDomain(e.target.value.trim()); });
+        document.getElementById('emailInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') searchByEmail(e.target.value.trim()); });
+        document.getElementById('lineInput').addEventListener('keypress', (e) => { if(e.key === 'Enter') searchByLine(parseInt(e.target.value)); });
+        
+        // Tabs
+        const tabs = document.querySelectorAll('.tab-btn');
+        const contents = { domain: document.getElementById('tab-domain'), email: document.getElementById('tab-email'), line: document.getElementById('tab-line') };
+        tabs.forEach(btn => {
+            btn.onclick = () => {
+                tabs.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                Object.values(contents).forEach(c => c.classList.remove('active'));
+                contents[btn.dataset.tab].classList.add('active');
+            };
+        });
+        
+        // ==================== INICIAR ====================
+        checkSession();
+        fetchStats();
+        setInterval(fetchStats, 30000);
+    </script>
+</body>
+</html>

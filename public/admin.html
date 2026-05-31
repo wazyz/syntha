@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYNTHΛ · Control Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Inter:wght@400;500;600&display=swap');
+
+        :root {
+            --neon-cyan: #00f5ff;
+            --neon-magenta: #ff00c8;
+            --neon-orange: #ff8c00;
+            --neon-green: #00ff9d;
+            --neon-red: #ff3355;
+            --bg-void: #03040a;
+            --bg-deep: #070a14;
+            --bg-panel: rgba(8, 12, 28, 0.95);
+            --bg-card: rgba(10, 15, 30, 0.88);
+            --border-glow: rgba(0, 245, 255, 0.18);
+            --border-subtle: rgba(0, 245, 255, 0.07);
+            --text-primary: #e8f4ff;
+            --text-secondary: #5a7a99;
+            --text-muted: #2a3a55;
+            --font-display: 'Orbitron', monospace;
+            --font-mono: 'Share Tech Mono', monospace;
+            --font-body: 'Inter', system-ui, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-void);
+            background-image:
+                radial-gradient(ellipse 80% 60% at 10% 20%, rgba(0,245,255,0.03) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 90% 80%, rgba(123,47,255,0.025) 0%, transparent 60%);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* Scanlines */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        /* Grid BG */
+        .glass-bg {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0,245,255,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,245,255,0.025) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── LAYOUT ── */
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+            padding-bottom: 1.2rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .admin-header h1 {
+            font-family: var(--font-display);
+            font-weight: 900;
+            font-size: 1.3rem;
+            letter-spacing: 0.15em;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 15px rgba(0,245,255,0.5), 0 0 40px rgba(0,245,255,0.15);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        /* ── STATS GRID ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.8rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-top: 2px solid var(--neon-cyan);
+            border-radius: 4px;
+            padding: 1.2rem;
+            text-align: center;
+            backdrop-filter: blur(12px);
+            position: relative;
+            transition: all 0.15s;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0,245,255,0.02);
+            border-radius: 4px;
+        }
+
+        .stat-card:hover {
+            border-color: rgba(0,245,255,0.35);
+            box-shadow: 0 0 20px rgba(0,245,255,0.08);
+        }
+
+        .stat-card i {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            margin-bottom: 0.4rem;
+            display: block;
+        }
+
+        .stat-card h3 {
+            font-family: var(--font-display);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 15px rgba(0,245,255,0.5);
+            margin: 0.3rem 0;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-card p {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        /* ── UPLOAD AREA ── */
+        .upload-area {
+            background: var(--bg-panel);
+            border-radius: 4px;
+            padding: 2rem 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px dashed rgba(0,245,255,0.2);
+            text-align: center;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .upload-area::before {
+            content: 'FILE_UPLOAD.sys';
+            position: absolute;
+            top: -1px;
+            right: 1.2rem;
+            font-family: var(--font-mono);
+            font-size: 0.62rem;
+            letter-spacing: 0.1em;
+            color: var(--bg-void);
+            background: rgba(0,245,255,0.3);
+            padding: 0.1rem 0.5rem;
+        }
+
+        .upload-area.drag-over {
+            border-color: var(--neon-cyan);
+            background: rgba(0,245,255,0.04);
+            box-shadow: 0 0 30px rgba(0,245,255,0.1);
+        }
+
+        .upload-area i {
+            font-size: 2rem;
+            color: var(--neon-cyan);
+            margin-bottom: 0.6rem;
+            display: block;
+            text-shadow: 0 0 15px rgba(0,245,255,0.5);
+        }
+
+        .upload-area h3 {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--text-primary);
+            margin-bottom: 0.4rem;
+        }
+
+        .upload-area p {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            padding: 0.5rem 1.1rem;
+            border: 1px solid transparent;
+            border-radius: 2px;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.15s;
+            position: relative;
+            z-index: 15;
+        }
+
+        .btn-primary {
+            background: transparent;
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            text-shadow: 0 0 8px rgba(0,245,255,0.4);
+            box-shadow: 0 0 12px rgba(0,245,255,0.1), inset 0 0 12px rgba(0,245,255,0.03);
+        }
+
+        .btn-primary:hover {
+            background: rgba(0,245,255,0.08);
+            box-shadow: 0 0 20px rgba(0,245,255,0.2);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border-color: var(--text-muted);
+            color: var(--text-secondary);
+        }
+
+        .btn-outline:hover {
+            border-color: var(--neon-red);
+            color: var(--neon-red);
+            text-shadow: 0 0 8px rgba(255,51,85,0.4);
+        }
+
+        .btn-success {
+            background: transparent;
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            text-shadow: 0 0 8px rgba(0,255,157,0.4);
+        }
+
+        .btn-success:hover {
+            background: rgba(0,255,157,0.08);
+        }
+
+        .btn-danger {
+            background: transparent;
+            border-color: var(--neon-red);
+            color: var(--neon-red);
+            text-shadow: 0 0 8px rgba(255,51,85,0.4);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255,51,85,0.08);
+        }
+
+        /* ── SECTION TITLES ── */
+        .section-title {
+            margin: 2rem 0 0.8rem 0;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .section-title i { color: var(--neon-cyan); }
+
+        /* ── USER CARDS ── */
+        .user-card {
+            background: rgba(5,10,22,0.7);
+            border-radius: 2px;
+            padding: 0.9rem 1rem;
+            margin-bottom: 0.4rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            border: 1px solid var(--border-subtle);
+            border-left: 3px solid var(--neon-orange);
+            position: relative;
+            transition: all 0.15s;
+        }
+
+        .user-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 3px;
+            height: 100%;
+            background: var(--neon-orange);
+            box-shadow: 0 0 8px var(--neon-orange);
+        }
+
+        .user-card.verified {
+            border-left-color: var(--neon-green);
+            opacity: 0.75;
+        }
+
+        .user-card.verified::before {
+            background: var(--neon-green);
+            box-shadow: 0 0 8px var(--neon-green);
+        }
+
+        .user-card:hover {
+            background: rgba(0,245,255,0.03);
+            border-color: rgba(0,245,255,0.15);
+        }
+
+        .user-info strong {
+            font-family: var(--font-mono);
+            font-size: 0.88rem;
+            color: var(--neon-cyan);
+            letter-spacing: 0.05em;
+        }
+
+        .user-info small {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.03em;
+            display: block;
+            margin-top: 0.15rem;
+        }
+
+        /* ── TABLES ── */
+        .logs-table, .domains-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .logs-table th, .domains-table th {
+            text-align: left;
+            padding: 0.65rem 0.85rem;
+            background: rgba(0,245,255,0.04);
+            color: var(--neon-cyan);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-glow);
+        }
+
+        .logs-table td, .domains-table td {
+            padding: 0.65rem 0.85rem;
+            border-bottom: 1px solid var(--border-subtle);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.02em;
+        }
+
+        .logs-table tr:hover td,
+        .domains-table tr:hover td {
+            background: rgba(0,245,255,0.02);
+            color: var(--text-primary);
+        }
+
+        /* ── LOGIN OVERLAY ── */
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(3,4,10,0.98);
+            backdrop-filter: blur(16px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .login-card {
+            background: var(--bg-panel);
+            border: 1px solid var(--border-glow);
+            border-top: 2px solid var(--neon-cyan);
+            border-radius: 4px;
+            padding: 2.2rem 2rem 2rem;
+            width: 340px;
+            text-align: center;
+            position: relative;
+            box-shadow:
+                0 0 0 1px var(--border-subtle),
+                0 8px 50px rgba(0,0,0,0.7),
+                0 0 60px rgba(0,245,255,0.06);
+        }
+
+        .login-card::before {
+            content: 'SYNTH_ADMIN.exe';
+            position: absolute;
+            top: -1px;
+            right: 1.2rem;
+            font-family: var(--font-mono);
+            font-size: 0.62rem;
+            letter-spacing: 0.1em;
+            color: var(--bg-void);
+            background: var(--neon-cyan);
+            padding: 0.1rem 0.5rem;
+        }
+
+        /* Shield icon wrapper */
+        .pin-shield {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            background: rgba(0,245,255,0.08);
+            border: 1px solid rgba(0,245,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            box-shadow: 0 0 20px rgba(0,245,255,0.1);
+        }
+
+        .pin-shield i {
+            font-size: 1.4rem;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 12px rgba(0,245,255,0.7);
+        }
+
+        .login-card h2 {
+            font-family: var(--font-display);
+            font-weight: 900;
+            font-size: 1.1rem;
+            letter-spacing: 0.12em;
+            color: var(--text-primary);
+            text-shadow: none;
+            margin-bottom: 0.35rem;
+        }
+
+        .pin-subtitle {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.06em;
+            margin-bottom: 1.5rem;
+        }
+
+        /* PIN dots */
+        .pin-dots {
+            display: flex;
+            gap: 0.7rem;
+            justify-content: center;
+            margin-bottom: 1.8rem;
+        }
+
+        .pin-dot {
+            width: 13px;
+            height: 13px;
+            border-radius: 50%;
+            border: 1.5px solid rgba(0,245,255,0.3);
+            background: transparent;
+            transition: all 0.15s ease;
+        }
+
+        .pin-dot.filled {
+            background: var(--neon-cyan);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 0 8px rgba(0,245,255,0.6);
+        }
+
+        .pin-dot.error {
+            background: var(--neon-red);
+            border-color: var(--neon-red);
+            box-shadow: 0 0 8px rgba(255,51,85,0.6);
+        }
+
+        /* PIN Keypad */
+        .pin-keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.55rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .pin-key {
+            aspect-ratio: 1.15;
+            background: rgba(8,14,30,0.9);
+            border: 1px solid rgba(0,245,255,0.12);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-family: var(--font-display);
+            font-size: 1.1rem;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .pin-key:hover {
+            background: rgba(0,245,255,0.08);
+            border-color: rgba(0,245,255,0.35);
+            box-shadow: 0 0 14px rgba(0,245,255,0.12);
+            color: var(--neon-cyan);
+        }
+
+        .pin-key:active {
+            background: rgba(0,245,255,0.15);
+            border-color: var(--neon-cyan);
+            transform: scale(0.94);
+        }
+
+        .pin-key.key-zero {
+            grid-column: 2;
+        }
+
+        .pin-key.key-del {
+            grid-column: 3;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .pin-key.key-del:hover {
+            color: var(--neon-red);
+            border-color: rgba(255,51,85,0.35);
+            box-shadow: 0 0 14px rgba(255,51,85,0.1);
+        }
+
+        .pin-error-msg {
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--neon-red);
+            letter-spacing: 0.06em;
+            text-shadow: 0 0 8px rgba(255,51,85,0.4);
+            min-height: 1.2em;
+        }
+
+        .pin-back-link {
+            margin-top: 1.2rem;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: color 0.15s;
+        }
+
+        .pin-back-link:hover { color: var(--neon-cyan); }
+
+        /* shake animation */
+        @keyframes pinShake {
+            0%,100% { transform: translateX(0); }
+            20%      { transform: translateX(-6px); }
+            40%      { transform: translateX(6px); }
+            60%      { transform: translateX(-4px); }
+            80%      { transform: translateX(4px); }
+        }
+        .pin-shake { animation: pinShake 0.4s ease; }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(5,10,22,0.97);
+            backdrop-filter: blur(20px);
+            padding: 0.65rem 1.4rem;
+            border-radius: 2px;
+            color: var(--neon-cyan);
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            z-index: 9998;
+            transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+            border: 1px solid rgba(0,245,255,0.4);
+            border-top: 2px solid var(--neon-cyan);
+            pointer-events: none;
+            text-shadow: 0 0 8px rgba(0,245,255,0.5);
+            box-shadow: 0 0 25px rgba(0,245,255,0.12);
+        }
+
+        .toast.show { transform: translateX(-50%) translateY(0); }
+
+        /* ── MISC ── */
+        .empty-state {
+            text-align: center;
+            padding: 2rem;
+            font-family: var(--font-mono);
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .badge {
+            background: rgba(255,140,0,0.15);
+            border: 1px solid rgba(255,140,0,0.4);
+            color: var(--neon-orange);
+            padding: 0.1rem 0.5rem;
+            border-radius: 2px;
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            letter-spacing: 0.05em;
+            margin-left: 0.5rem;
+            text-shadow: 0 0 6px rgba(255,140,0,0.4);
+        }
+
+        @media (max-width: 768px) {
+            .admin-container { padding: 1rem; }
+            .user-card { flex-direction: column; align-items: stretch; }
+            .btn { justify-content: center; }
+            .admin-header h1 { font-size: 1rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="glass-bg"></div>
+
+    <!-- Login Overlay -->
+    <div id="loginOverlay" class="login-overlay">
+        <div class="login-card">
+            <div class="pin-shield">
+                <i class="fas fa-shield-halved"></i>
+            </div>
+            <h2>Panel de Administración</h2>
+            <p class="pin-subtitle">Introduce tu PIN de 6 dígitos</p>
+
+            <div class="pin-dots" id="pinDots">
+                <div class="pin-dot" id="dot0"></div>
+                <div class="pin-dot" id="dot1"></div>
+                <div class="pin-dot" id="dot2"></div>
+                <div class="pin-dot" id="dot3"></div>
+                <div class="pin-dot" id="dot4"></div>
+                <div class="pin-dot" id="dot5"></div>
+            </div>
+
+            <div class="pin-keypad">
+                <button class="pin-key" data-digit="1">1</button>
+                <button class="pin-key" data-digit="2">2</button>
+                <button class="pin-key" data-digit="3">3</button>
+                <button class="pin-key" data-digit="4">4</button>
+                <button class="pin-key" data-digit="5">5</button>
+                <button class="pin-key" data-digit="6">6</button>
+                <button class="pin-key" data-digit="7">7</button>
+                <button class="pin-key" data-digit="8">8</button>
+                <button class="pin-key" data-digit="9">9</button>
+                <button class="pin-key key-zero" data-digit="0">0</button>
+                <button class="pin-key key-del" id="pinDelBtn"><i class="fas fa-delete-left"></i></button>
+            </div>
+
+            <p class="pin-error-msg" id="pinError"></p>
+            <p class="pin-back-link" onclick="window.location.href='/index.html'">← Volver al inicio</p>
+        </div>
+    </div>
+
+    <!-- Main Admin Content -->
+    <div id="adminContent" style="display: none;">
+        <div class="admin-container">
+            <div class="admin-header">
+                <h1><i class="fas fa-shield-alt"></i> SYNTHΛ · Control Panel</h1>
+                <button class="btn btn-outline" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card"><i class="fas fa-database"></i><h3 id="totalCreds">0</h3><p>Credenciales</p></div>
+                <div class="stat-card"><i class="fas fa-users"></i><h3 id="totalUsers">0</h3><p>Usuarios totales</p></div>
+                <div class="stat-card"><i class="fas fa-clock"></i><h3 id="pendingUsers">0</h3><p>Pendientes</p></div>
+                <div class="stat-card"><i class="fas fa-upload"></i><h3 id="totalUploads">0</h3><p>Subidas</p></div>
+            </div>
+
+            <!-- Upload Section -->
+            <div id="uploadSection">
+            <div class="upload-area" id="uploadArea">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3>Subir database</h3>
+                <p>Arrastra un archivo .txt o haz clic para seleccionar</p>
+                <input type="file" id="uploadFile" accept=".txt" hidden>
+                <button class="btn btn-primary" id="selectUploadBtn"><i class="fas fa-folder-open"></i> Seleccionar archivo</button>
+                <div id="uploadResult" style="margin-top: 1rem; font-size: 0.85rem;"></div>
+            </div>
+
+            </div><!-- /uploadSection -->
+            <!-- Usuarios Pendientes -->
+            <div class="section-title">
+                <i class="fas fa-user-clock"></i> Usuarios pendientes de verificación
+                <span class="badge" id="pendingBadge">0</span>
+            </div>
+            <div id="pendingUsersContainer">
+                <div class="empty-state">Cargando usuarios...</div>
+            </div>
+
+            <!-- Usuarios Verificados -->
+            <div class="section-title">
+                <i class="fas fa-user-check"></i> Usuarios verificados
+            </div>
+            <div id="verifiedUsersContainer">
+                <div class="empty-state">Cargando...</div>
+            </div>
+
+            <!-- Últimas subidas -->
+            <div class="section-title"><i class="fas fa-history"></i> Últimas subidas</div>
+            <table class="logs-table">
+                <thead><tr><th>Archivo</th><th>Líneas añadidas</th><th>Subido por</th><th>Fecha</th></tr></thead>
+                <tbody id="logsBody"><tr><td colspan="4">Cargando...</td></tr></tbody>
+            </table>
+
+            <!-- Top dominios -->
+            <div class="section-title"><i class="fas fa-chart-bar"></i> Top dominios</div>
+            <table class="domains-table">
+                <thead><tr><th>Dominio</th><th>Cuentas</th></tr></thead>
+                <tbody id="domainsBody"><tr><td colspan="2">Cargando...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let adminToken = null;
+
+        function showToast(msg, duration = 2500) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        async function apiCall(endpoint, options = {}) {
+            const res = await fetch(endpoint, {
+                ...options,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Admin-Token': adminToken || '',
+                    ...options.headers
+                }
+            });
+            if (!res.ok) {
+                const error = await res.json();
+                throw new Error(error.error || 'Error en la petición');
+            }
+            return res.json();
+        }
+
+
+        // ─────────────────────────────────────────────────
+        const PIN_SUPREMO    = '102007'; // ← CAMBIA ESTE PIN (6 dígitos)
+        const PIN_MODERADOR  = '200710'; // ← CAMBIA ESTE PIN (6 dígitos)
+        // ─────────────────────────────────────────────────
+
+        let pinBuffer = '';
+        const PIN_LENGTH = 6;
+
+        function updateDots() {
+            for (let i = 0; i < PIN_LENGTH; i++) {
+                const dot = document.getElementById('dot' + i);
+                dot.classList.remove('filled', 'error');
+                if (i < pinBuffer.length) dot.classList.add('filled');
+            }
+        }
+
+        function shakeDots() {
+            const dots = document.getElementById('pinDots');
+            for (let i = 0; i < PIN_LENGTH; i++) {
+                document.getElementById('dot' + i).classList.add('error');
+            }
+            dots.classList.add('pin-shake');
+            setTimeout(() => {
+                dots.classList.remove('pin-shake');
+                pinBuffer = '';
+                updateDots();
+            }, 420);
+        }
+
+        function handlePinDigit(digit) {
+            if (pinBuffer.length >= PIN_LENGTH) return;
+            document.getElementById('pinError').textContent = '';
+            pinBuffer += digit;
+            updateDots();
+            if (pinBuffer.length === PIN_LENGTH) {
+                setTimeout(validatePin, 80);
+            }
+        }
+
+        function handlePinDelete() {
+            if (pinBuffer.length === 0) return;
+            pinBuffer = pinBuffer.slice(0, -1);
+            document.getElementById('pinError').textContent = '';
+            updateDots();
+        }
+
+        function validatePin() {
+            if (pinBuffer === PIN_SUPREMO || pinBuffer === PIN_MODERADOR) {
+                const role = (pinBuffer === PIN_SUPREMO) ? 'supremo' : 'moderador';
+                doServerLogin(role);
+            } else {
+                document.getElementById('pinError').textContent = 'PIN incorrecto. Inténtalo de nuevo.';
+                shakeDots();
+            }
+        }
+
+        async function doServerLogin(role) {
+            const creds = { username: 'admin', password: 'Admin123!' };
+
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(creds)
+                });
+                const data = await res.json();
+
+                if (res.ok && data.token) {
+                    adminToken = data.token;
+                    localStorage.setItem('adminToken', adminToken);
+                    localStorage.setItem('adminRole', role);
+
+                    // Mostrar/ocultar upload según rol
+                    const uploadSection = document.getElementById('uploadSection');
+                    if (uploadSection) {
+                        uploadSection.style.display = (role === 'supremo') ? 'block' : 'none';
+                    }
+
+                    document.getElementById('pinError').textContent = '';
+                    document.getElementById('loginOverlay').style.display = 'none';
+                    document.getElementById('adminContent').style.display = 'block';
+                    loadDashboard();
+                    showToast(role === 'supremo' ? '\u2705 Acceso supremo concedido' : '\u2705 Acceso moderador concedido');
+                } else {
+                    document.getElementById('pinError').textContent = data.error || 'Error de autenticación';
+                    shakeDots();
+                }
+            } catch(e) {
+                document.getElementById('pinError').textContent = 'Error de conexión con el servidor';
+                shakeDots();
+            }
+        }
+
+        // Eventos del teclado PIN
+        document.querySelectorAll('.pin-key[data-digit]').forEach(btn => {
+            btn.addEventListener('click', () => handlePinDigit(btn.dataset.digit));
+        });
+        document.getElementById('pinDelBtn').addEventListener('click', handlePinDelete);
+
+        // Teclado físico también funciona
+        document.addEventListener('keydown', (e) => {
+            if (document.getElementById('loginOverlay').style.display === 'none') return;
+            if (/^[0-9]$/.test(e.key)) handlePinDigit(e.key);
+            if (e.key === 'Backspace') handlePinDelete();
+        });
+
+        async function loadDashboard() {
+            try {
+                const data = await apiCall('/api/admin/dashboard');
+                
+                // Stats
+                document.getElementById('totalCreds').innerText = data.total_credentials?.toLocaleString() || '0';
+                document.getElementById('totalUsers').innerText = data.total_users || '0';
+                document.getElementById('pendingUsers').innerText = data.pending_verifications || '0';
+                document.getElementById('pendingBadge').innerText = data.pending_verifications || '0';
+                document.getElementById('totalUploads').innerText = data.recent_uploads?.length || '0';
+                
+                // Usuarios pendientes
+                const pendingUsers = (data.users || []).filter(u => u.verified === 0);
+                const pendingContainer = document.getElementById('pendingUsersContainer');
+                if (pendingUsers.length === 0) {
+                    pendingContainer.innerHTML = '<div class="empty-state"><i class="fas fa-check-circle"></i> No hay usuarios pendientes de verificación</div>';
+                } else {
+                    pendingContainer.innerHTML = pendingUsers.map(user => `
+                        <div class="user-card">
+                            <div class="user-info">
+                                <strong>${escapeHtml(user.username)}</strong><br>
+                                <small>📧 ${escapeHtml(user.email)}</small><br>
+                                <small>📅 Registrado: ${new Date(user.created_at).toLocaleString()}</small>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-success" onclick="approveUser(${user.id})">
+                                    <i class="fas fa-check"></i> Aprobar
+                                </button>
+                                <button class="btn btn-danger" onclick="rejectUser(${user.id})">
+                                    <i class="fas fa-times"></i> Rechazar
+                                </button>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                
+                // Usuarios verificados
+                const verifiedUsers = (data.users || []).filter(u => u.verified === 1);
+                const verifiedContainer = document.getElementById('verifiedUsersContainer');
+                if (verifiedUsers.length === 0) {
+                    verifiedContainer.innerHTML = '<div class="empty-state">No hay usuarios verificados aún</div>';
+                } else {
+                    verifiedContainer.innerHTML = verifiedUsers.map(user => `
+                        <div class="user-card verified">
+                            <div class="user-info">
+                                <strong>${escapeHtml(user.username)}</strong><br>
+                                <small>📧 ${escapeHtml(user.email)}</small><br>
+                                <small>✅ Verificado: ${new Date(user.created_at).toLocaleString()}</small>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+                
+                // Logs de subidas
+                const logsBody = document.getElementById('logsBody');
+                if (!data.recent_uploads || data.recent_uploads.length === 0) {
+                    logsBody.innerHTML = '<tr><td colspan="4">No hay subidas registradas</td></tr>';
+                } else {
+                    logsBody.innerHTML = data.recent_uploads.map(log => `
+                        <tr>
+                            <td>${escapeHtml(log.filename)}</td>
+                            <td>${log.lines_added}</td>
+                            <td>${escapeHtml(log.uploaded_by)}</td>
+                            <td>${new Date(log.uploaded_at).toLocaleString()}</td>
+                        </tr>
+                    `).join('');
+                }
+                
+                // Top dominios
+                const domainsBody = document.getElementById('domainsBody');
+                if (!data.top_domains || data.top_domains.length === 0) {
+                    domainsBody.innerHTML = '<tr><td colspan="2">No hay datos</td></tr>';
+                } else {
+                    domainsBody.innerHTML = data.top_domains.map(d => `
+                        <tr>
+                            <td>${escapeHtml(d.domain || 'desconocido')}</td>
+                            <td>${d.count}</td>
+                        </tr>
+                    `).join('');
+                }
+                
+            } catch(e) {
+                console.error(e);
+                showToast('Error al cargar dashboard: ' + e.message, 3000);
+            }
+        }
+
+        window.approveUser = async function(userId) {
+            try {
+                const res = await fetch('/api/admin/verify-user', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Admin-Token': adminToken
+                    },
+                    body: JSON.stringify({ userId, action: 'approve' })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast('✅ Usuario aprobado correctamente', 2000);
+                    loadDashboard();
+                } else {
+                    showToast('Error: ' + data.error, 3000);
+                }
+            } catch(e) {
+                showToast('Error al aprobar usuario', 3000);
+            }
+        };
+
+        window.rejectUser = async function(userId) {
+            if (!confirm('¿Seguro que quieres rechazar y eliminar este usuario?')) return;
+            try {
+                const res = await fetch('/api/admin/verify-user', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Admin-Token': adminToken
+                    },
+                    body: JSON.stringify({ userId, action: 'reject' })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showToast('❌ Usuario rechazado y eliminado', 2000);
+                    loadDashboard();
+                } else {
+                    showToast('Error: ' + data.error, 3000);
+                }
+            } catch(e) {
+                showToast('Error al rechazar usuario', 3000);
+            }
+        };
+
+        // ==================== SUBIDA SIMPLE ====================
+        async function uploadFile(file) {
+            const resultDiv = document.getElementById('uploadResult');
+            resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo y procesando...';
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const res = await fetch('/api/admin/upload', {
+                    method: 'POST',
+                    headers: { 'X-Admin-Token': adminToken },
+                    body: formData
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    resultDiv.innerHTML = `<span style="color: #00ff88;">✅ Subido: ${data.added} líneas nuevas, ${data.skipped} duplicadas</span>`;
+                    showToast(`✅ ${data.added} nuevas credenciales añadidas`, 3000);
+                    loadDashboard();
+                    setTimeout(() => { resultDiv.innerHTML = ''; }, 5000);
+                } else {
+                    resultDiv.innerHTML = `<span style="color: #ff3355;">❌ Error: ${data.error}</span>`;
+                }
+            } catch(e) {
+                resultDiv.innerHTML = '<span style="color: #ff3355;">❌ Error de conexión</span>';
+            }
+            document.getElementById('uploadFile').value = '';
+        }
+
+        // Event Listeners
+        document.getElementById('logoutBtn').onclick = () => {
+            adminToken = null;
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminRole');
+            pinBuffer = '';
+            updateDots();
+            document.getElementById('pinError').textContent = '';
+            document.getElementById('loginOverlay').style.display = 'flex';
+            document.getElementById('adminContent').style.display = 'none';
+            showToast('Sesión cerrada');
+        };
+        
+        document.getElementById('selectUploadBtn').onclick = () => document.getElementById('uploadFile').click();
+        document.getElementById('uploadFile').onchange = (e) => {
+            if (e.target.files.length) uploadFile(e.target.files[0]);
+        };
+        
+        const uploadArea = document.getElementById('uploadArea');
+        uploadArea.ondragover = (e) => { e.preventDefault(); uploadArea.classList.add('drag-over'); };
+        uploadArea.ondragleave = () => uploadArea.classList.remove('drag-over');
+        uploadArea.ondrop = (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            if (e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]);
+        };
+        
+        // ==================== INIT ====================
+        // Restaurar sesión guardada — verifica que el token sigue siendo válido
+        (async () => {
+            const savedToken = localStorage.getItem('adminToken');
+            const savedRole  = localStorage.getItem('adminRole');
+            if (!savedToken || !savedRole) return;
+
+            try {
+                const res = await fetch('/api/admin/dashboard', {
+                    headers: { 'X-Admin-Token': savedToken }
+                });
+                if (res.ok) {
+                    adminToken = savedToken;
+                    const uploadSection = document.getElementById('uploadSection');
+                    if (uploadSection) {
+                        uploadSection.style.display = (savedRole === 'supremo') ? 'block' : 'none';
+                    }
+                    document.getElementById('loginOverlay').style.display = 'none';
+                    document.getElementById('adminContent').style.display = 'block';
+                    loadDashboard();
+                } else {
+                    // Token expirado o inválido — limpiar y pedir PIN de nuevo
+                    localStorage.removeItem('adminToken');
+                    localStorage.removeItem('adminRole');
+                }
+            } catch(e) {
+                // Servidor no disponible, limpiar por seguridad
+                localStorage.removeItem('adminToken');
+                localStorage.removeItem('adminRole');
+            }
+        })();
+    </script>
+</body>
+</html>

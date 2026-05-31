@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYNTHΛ · Access</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@700;900&family=Inter:wght@400;500;600&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background-color: #03040a;
+            background-image:
+                radial-gradient(ellipse 80% 60% at 10% 20%, rgba(0,245,255,0.035) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 90% 80%, rgba(123,47,255,0.03) 0%, transparent 60%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #e8f4ff;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .glass-bg {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(0,245,255,0.025) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,245,255,0.025) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .login-card {
+            background: rgba(8, 12, 28, 0.96);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 4px;
+            padding: 2.2rem 2rem;
+            width: 400px;
+            border: 1px solid rgba(0,245,255,0.18);
+            border-top: 2px solid #00f5ff;
+            position: relative;
+            z-index: 10;
+            box-shadow:
+                0 0 0 1px rgba(0,245,255,0.07),
+                0 8px 50px rgba(0,0,0,0.6),
+                0 0 40px rgba(0,245,255,0.06);
+        }
+
+        .login-card::before {
+            content: 'SYNTH_AUTH.exe';
+            position: absolute;
+            top: -1px;
+            right: 1.2rem;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.62rem;
+            letter-spacing: 0.1em;
+            color: #03040a;
+            background: #00f5ff;
+            padding: 0.1rem 0.5rem;
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 1.8rem;
+            font-family: 'Orbitron', monospace;
+            font-weight: 900;
+            font-size: 1.4rem;
+            letter-spacing: 0.15em;
+            color: #00f5ff;
+            text-shadow: 0 0 15px rgba(0,245,255,0.6), 0 0 40px rgba(0,245,255,0.2);
+        }
+
+        input {
+            width: 100%;
+            margin-bottom: 0.8rem;
+            padding: 0.85rem 1.2rem;
+            background: rgba(5,10,22,0.9);
+            border: 1px solid #2a3a55;
+            border-radius: 2px;
+            color: #e8f4ff;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.15s;
+            letter-spacing: 0.03em;
+        }
+
+        input::placeholder { color: #2a3a55; }
+
+        input:focus {
+            border-color: #00f5ff;
+            box-shadow: 0 0 0 1px rgba(0,245,255,0.2), 0 0 15px rgba(0,245,255,0.08);
+            background: rgba(0,245,255,0.02);
+        }
+
+        button {
+            width: 100%;
+            padding: 0.85rem;
+            border-radius: 2px;
+            background: transparent;
+            border: 1px solid #00f5ff;
+            color: #00f5ff;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-shadow: 0 0 8px rgba(0,245,255,0.5);
+            box-shadow: 0 0 15px rgba(0,245,255,0.1), inset 0 0 15px rgba(0,245,255,0.03);
+        }
+
+        button:hover {
+            background: rgba(0,245,255,0.08);
+            box-shadow: 0 0 25px rgba(0,245,255,0.25), inset 0 0 20px rgba(0,245,255,0.05);
+        }
+
+        .switch {
+            text-align: center;
+            margin-top: 1.2rem;
+            color: #5a7a99;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.78rem;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+        }
+        .switch span { color: #00f5ff; text-shadow: 0 0 6px rgba(0,245,255,0.4); cursor: pointer; }
+
+        .message {
+            padding: 0.7rem 1rem;
+            border-radius: 2px;
+            margin-bottom: 1rem;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.78rem;
+            letter-spacing: 0.05em;
+            display: none;
+        }
+        .error  { background: rgba(255,51,85,0.1); border: 1px solid #ff3355; color: #ff6680; }
+        .success{ background: rgba(0,245,255,0.08); border: 1px solid #00f5ff; color: #00f5ff; }
+
+        .price-badge {
+            text-align: center;
+            margin-top: 1rem;
+            padding: 0.7rem;
+            background: rgba(0,245,255,0.06);
+            border: 1px solid rgba(0,245,255,0.12);
+            border-radius: 2px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.75rem;
+            color: #5a7a99;
+            letter-spacing: 0.05em;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(5,10,22,0.97);
+            padding: 0.65rem 1.4rem;
+            border-radius: 2px;
+            color: #00f5ff;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.8rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+            border: 1px solid rgba(0,245,255,0.4);
+            border-top: 2px solid #00f5ff;
+            z-index: 9998;
+            text-shadow: 0 0 8px rgba(0,245,255,0.5);
+            box-shadow: 0 0 25px rgba(0,245,255,0.15);
+        }
+        .toast.show { transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+    <div class="glass-bg"></div>
+    <div class="login-card">
+        <h2>SYNTHΛ</h2>
+        
+        <div id="messageBox" class="message"></div>
+        
+        <!-- Login Form -->
+        <div id="loginForm">
+            <input type="email" id="loginEmail" placeholder="Email" autocomplete="off">
+            <input type="password" id="loginPassword" placeholder="Contraseña">
+            <button id="doLoginBtn">Iniciar sesión</button>
+            <div class="switch">¿No tienes cuenta? <span id="switchToRegister">Regístrate</span></div>
+        </div>
+        
+        <!-- Register Form -->
+        <div id="registerForm" style="display: none;">
+            <input type="text" id="regUsername" placeholder="Nombre de usuario">
+            <input type="email" id="regEmail" placeholder="Email">
+            <input type="password" id="regPassword" placeholder="Contraseña (mínimo 6 caracteres)">
+            <button id="doRegisterBtn">Registrarse</button>
+            <div class="switch">¿Ya tienes cuenta? <span id="switchToLogin">Iniciar sesión</span></div>
+        </div>
+        
+        <div class="price-badge">
+            💰 Suscripción premium: 75€ · Contacta con admin para pagar
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        const toast = document.getElementById('toast');
+        const msgBox = document.getElementById('messageBox');
+        
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2500);
+        }
+        
+        function showMessage(msg, type) {
+            msgBox.textContent = msg;
+            msgBox.className = `message ${type}`;
+            msgBox.style.display = 'block';
+            setTimeout(() => msgBox.style.display = 'none', 5000);
+        }
+        
+        async function register() {
+            const username = document.getElementById('regUsername').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const password = document.getElementById('regPassword').value;
+            
+            if (!username || !email || !password) {
+                showMessage('Todos los campos son obligatorios', 'error');
+                return;
+            }
+            if (password.length < 6) {
+                showMessage('La contraseña debe tener al menos 6 caracteres', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    showMessage('✅ Registro exitoso. Espera verificación del admin.', 'success');
+                    setTimeout(() => document.getElementById('switchToLogin').click(), 2000);
+                } else {
+                    showMessage(data.error, 'error');
+                }
+            } catch(e) {
+                showMessage('Error de conexión al servidor', 'error');
+            }
+        }
+        
+        async function login() {
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+            
+            if (!email || !password) {
+                showMessage('Email y contraseña son obligatorios', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                
+                if (res.ok && data.token) {
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    showToast('✅ Login exitoso. Redirigiendo...');
+                    window.location.href = '/index.html';
+                } else {
+                    if (data.needsVerification) {
+                        showMessage('⏳ Cuenta pendiente de verificación. Espera aprobación del admin.', 'error');
+                    } else {
+                        showMessage(data.error || 'Credenciales inválidas', 'error');
+                    }
+                }
+            } catch(e) {
+                showMessage('Error de conexión. ¿El servidor está corriendo?', 'error');
+            }
+        }
+        
+        // Switches
+        document.getElementById('switchToRegister').onclick = () => {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+            msgBox.style.display = 'none';
+        };
+        document.getElementById('switchToLogin').onclick = () => {
+            document.getElementById('registerForm').style.display = 'none';
+            document.getElementById('loginForm').style.display = 'block';
+            msgBox.style.display = 'none';
+        };
+        
+        document.getElementById('doLoginBtn').onclick = login;
+        document.getElementById('doRegisterBtn').onclick = register;
+        
+        // Enter key
+        document.getElementById('loginPassword').addEventListener('keypress', (e) => { if(e.key === 'Enter') login(); });
+        document.getElementById('regPassword').addEventListener('keypress', (e) => { if(e.key === 'Enter') register(); });
+        
+        // Si ya hay token, ir a index
+        if (localStorage.getItem('authToken')) {
+            window.location.href = '/index.html';
+        }
+    </script>
+</body>
+</html>
