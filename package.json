@@ -1,22 +1,18 @@
 {
-  "name": "databaseweb",
+  "name": "syntha",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "SYNTHA · Sistema de búsqueda",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "bcryptjs": "^3.0.3",
-    "cors": "^2.8.6",
-    "express": "^5.2.1",
-    "fs-extra": "^11.3.5",
-    "multer": "^2.1.1",
-    "path": "^0.12.7",
-    "sqlite3": "^6.0.1"
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "fs-extra": "^11.2.0",
+    "multer": "^1.4.5-lts.1",
+    "sqlite3": "^5.1.7"
   }
 }

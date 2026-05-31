@@ -16,18 +16,18 @@ app.use(express.static('public'));
 
 // Configuración de subida de archivos
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, 'uploads/'),
+    destination: (req, file, cb) => cb(null, '/app/data/uploads/'),
     filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
 const upload = multer({ storage });
 
 // Asegurar que las carpetas existan
-fs.ensureDirSync('./uploads');
-fs.ensureDirSync('./data');
+fs.ensureDirSync('/app/data/uploads');
+fs.ensureDirSync('/app/data/data');
 fs.ensureDirSync('./public');
 
 // ==================== BASE DE DATOS ====================
-const db = new sqlite3.Database('./database.sqlite');
+const db = new sqlite3.Database(process.env.DB_PATH || '/app/data/database.sqlite');
 
 db.serialize(() => {
     // Tabla de credenciales (búsqueda principal)
@@ -458,7 +458,7 @@ app.delete('/api/admin/delete/:id', verifyAdmin, (req, res) => {
 // ==================== CARGAR BASES DE DATOS INICIALES ====================
 
 async function loadBaseDatabases() {
-    const dataDir = './data';
+    const dataDir = '/app/data/data';
     if (await fs.pathExists(dataDir)) {
         const files = await fs.readdir(dataDir);
         for (const file of files) {
@@ -476,7 +476,7 @@ async function loadBaseDatabases() {
         }
     } else {
         console.log('📁 Carpeta data/ no encontrada. Creando...');
-        await fs.ensureDirSync('./data');
+        await fs.ensureDirSync('/app/data/data');
         console.log('   Coloca tus archivos .txt en la carpeta data/ y reinicia el servidor');
     }
 }
@@ -486,7 +486,7 @@ async function loadBaseDatabases() {
 app.listen(PORT, '0.0.0.0', async () => {
     console.log(`
 ╔═══════════════════════════════════════════════════════╗
-║     🚀 SYNTHΛ -              ║
+║     🚀 syntha - Servidor Activo              ║
 ║                                                       ║
 ║     🌐 Web: http://localhost:${PORT}                   ║
 ║     🔐 Admin: http://localhost:${PORT}/admin.html      ║
