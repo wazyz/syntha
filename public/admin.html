@@ -1019,29 +1019,52 @@
         // ==================== SUBIDA SIMPLE ====================
         async function uploadFile(file) {
             const resultDiv = document.getElementById('uploadResult');
-            resultDiv.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Subiendo y procesando...';
+            const sizeMB = (file.size / 1024 / 1024).toFixed(1);
             
+            // Animación de progreso mientras procesa
+            let dots = 0;
+            resultDiv.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Subiendo ${file.name} (${sizeMB} MB)...`;
+            const progressInterval = setInterval(() => {
+                dots = (dots + 1) % 4;
+                resultDiv.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Procesando${'.'.repeat(dots)} (esto puede tardar varios minutos para archivos grandes)`;
+            }, 1500);
+
             const formData = new FormData();
             formData.append('file', file);
-            
+
+            // AbortController con timeout de 20 minutos para archivos grandes
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 20 * 60 * 1000);
+
             try {
                 const res = await fetch('/api/admin/upload', {
                     method: 'POST',
                     headers: { 'X-Admin-Token': adminToken },
-                    body: formData
+                    body: formData,
+                    signal: controller.signal
                 });
+                clearTimeout(timeout);
+                clearInterval(progressInterval);
+
                 const data = await res.json();
-                
+
                 if (res.ok) {
-                    resultDiv.innerHTML = `<span style="color: #00ff88;">✅ Subido: ${data.added} líneas nuevas, ${data.skipped} duplicadas</span>`;
-                    showToast(`✅ ${data.added} nuevas credenciales añadidas`, 3000);
+                    resultDiv.innerHTML = `<span style="color: #00ff9d;">✅ ${data.added.toLocaleString()} líneas nuevas · ${data.skipped.toLocaleString()} duplicadas · ${data.total_processed.toLocaleString()} procesadas</span>`;
+                    showToast(`✅ ${data.added.toLocaleString()} nuevas credenciales añadidas`, 4000);
                     loadDashboard();
-                    setTimeout(() => { resultDiv.innerHTML = ''; }, 5000);
+                    setTimeout(() => { resultDiv.innerHTML = ''; }, 8000);
                 } else {
                     resultDiv.innerHTML = `<span style="color: #ff3355;">❌ Error: ${data.error}</span>`;
                 }
             } catch(e) {
-                resultDiv.innerHTML = '<span style="color: #ff3355;">❌ Error de conexión</span>';
+                clearTimeout(timeout);
+                clearInterval(progressInterval);
+                if (e.name === 'AbortError') {
+                    resultDiv.innerHTML = '<span style="color: #ff8c00;">⚠️ Timeout: el archivo es muy grande. Prueba con un fragmento más pequeño.</span>';
+                } else {
+                    resultDiv.innerHTML = `<span style="color: #ff3355;">❌ Error: ${e.message}</span>`;
+                    console.error('Upload error:', e);
+                }
             }
             document.getElementById('uploadFile').value = '';
         }
