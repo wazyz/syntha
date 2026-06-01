@@ -1,18 +1,18 @@
 {
   "name": "syntha",
   "version": "1.0.0",
-  "description": "SYNTHA · Sistema de búsqueda",
+  "description": "SYNTHΛ · Sistema de búsqueda",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js"
   },
   "dependencies": {
+    "@libsql/client": "^0.14.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "fs-extra": "^11.2.0",
-    "multer": "^1.4.5-lts.1",
-    "sqlite3": "^5.1.7"
+    "multer": "^1.4.5-lts.1"
   }
 }
