@@ -93,6 +93,15 @@ async function initDB() {
         searched_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
+    // Tabla de tokens de admin (persistente entre reinicios)
+    await dbRun(`CREATE TABLE IF NOT EXISTS admin_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        token TEXT UNIQUE NOT NULL,
+        expires_at INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
     // Crear admin por defecto si no existe
     const adminExists = await dbGet("SELECT id FROM admins WHERE username = ?", ['admin']);
     if (!adminExists) {
@@ -348,8 +357,15 @@ app.post('/api/admin/login', async (req, res) => {
         if (!admin) return res.status(401).json({ error: 'Credenciales inválidas' });
 
         if (bcrypt.compareSync(password, admin.password)) {
-            const token = Buffer.from(`${username}:${Date.now()}`).toString('base64');
-            activeAdminTokens.set(token, { admin, createdAt: Date.now() });
+            const token = Buffer.from(`${username}:${Date.now()}:${Math.random()}`).toString('base64');
+            const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 días
+            // Guardar token en Turso — persiste entre reinicios de Railway
+            await dbRun(
+                "INSERT INTO admin_tokens (username, token, expires_at) VALUES (?, ?, ?)",
+                [username, token, expiresAt]
+            );
+            // Limpiar tokens expirados
+            await dbRun("DELETE FROM admin_tokens WHERE expires_at < ?", [Date.now()]);
             res.json({ token, username: admin.username });
         } else {
             res.status(401).json({ error: 'Credenciales inválidas' });
