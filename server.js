@@ -11,7 +11,8 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static('public'));
 
 // Configuración de subida de archivos
@@ -19,7 +20,10 @@ const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, '/app/data/uploads/'),
     filename: (req, file, cb) => cb(null, Date.now() + '-' + file.originalname)
 });
-const upload = multer({ storage });
+const upload = multer({ 
+    storage,
+    limits: { fileSize: 500 * 1024 * 1024 } // 500MB máximo
+});
 
 // Asegurar que las carpetas existan
 fs.ensureDirSync('/app/data/uploads');
@@ -183,6 +187,9 @@ function verifyUserToken(req, res, next) {
     }
 }
 
+// Tokens de admin activos en memoria (se limpian al reiniciar)
+const activeAdminTokens = new Map();
+
 // Verificar token de admin
 function verifyAdmin(req, res, next) {
     const token = req.headers['x-admin-token'];
@@ -191,12 +198,29 @@ function verifyAdmin(req, res, next) {
     }
     
     try {
-        const decoded = Buffer.from(token, 'base64').toString();
-        const [username] = decoded.split(':');
+        // Primero buscar en tokens activos en memoria
+        if (activeAdminTokens.has(token)) {
+            const adminData = activeAdminTokens.get(token);
+            // Token expira en 24h
+            if (Date.now() - adminData.createdAt < 24 * 60 * 60 * 1000) {
+                req.admin = adminData.admin;
+                return next();
+            } else {
+                activeAdminTokens.delete(token);
+            }
+        }
+        
+        // Fallback: intentar decodificar el token
+        const decoded = Buffer.from(token, 'base64').toString('utf-8');
+        const colonIdx = decoded.lastIndexOf(':');
+        if (colonIdx === -1) {
+            return res.status(401).json({ error: 'Token inválido' });
+        }
+        const username = decoded.substring(0, colonIdx);
         
         db.get("SELECT * FROM admins WHERE username = ?", [username], (err, admin) => {
             if (err || !admin) {
-                return res.status(401).json({ error: 'Token inválido' });
+                return res.status(401).json({ error: 'Token inválido. Vuelve a iniciar sesión.' });
             }
             req.admin = admin;
             next();
@@ -365,6 +389,8 @@ app.post('/api/admin/login', (req, res) => {
         
         if (bcrypt.compareSync(password, admin.password)) {
             const token = Buffer.from(`${username}:${Date.now()}`).toString('base64');
+            // Guardar token en memoria para verificación robusta
+            activeAdminTokens.set(token, { admin, createdAt: Date.now() });
             res.json({ token, username: admin.username });
         } else {
             res.status(401).json({ error: 'Credenciales inválidas' });
@@ -421,9 +447,17 @@ app.post('/api/admin/upload', verifyAdmin, upload.single('file'), async (req, re
         return res.status(400).json({ error: 'No se subió ningún archivo' });
     }
     
+    // Timeout extendido para archivos grandes (10 minutos)
+    req.socket.setTimeout(10 * 60 * 1000);
+    
     try {
+        const sizeMB = (req.file.size / 1024 / 1024).toFixed(2);
+        console.log(`📤 Procesando: ${req.file.originalname} (${sizeMB} MB)`);
+        
         const fileContent = await fs.readFile(req.file.path, 'utf-8');
         const lines = fileContent.split(/\r?\n/);
+        console.log(`   📝 ${lines.length} líneas encontradas`);
+        
         const { added, skipped } = await processAndSaveLines(lines, req.file.originalname);
         
         db.run(
@@ -432,6 +466,7 @@ app.post('/api/admin/upload', verifyAdmin, upload.single('file'), async (req, re
         );
         
         await fs.remove(req.file.path);
+        console.log(`   ✅ ${added} añadidas, ${skipped} duplicadas`);
         
         res.json({
             success: true,
@@ -441,8 +476,11 @@ app.post('/api/admin/upload', verifyAdmin, upload.single('file'), async (req, re
             filename: req.file.originalname
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Error procesando el archivo' });
+        console.error('Error en upload:', error);
+        if (req.file && req.file.path) {
+            try { await fs.remove(req.file.path); } catch(e) {}
+        }
+        res.status(500).json({ error: 'Error procesando el archivo: ' + error.message });
     }
 });
 
