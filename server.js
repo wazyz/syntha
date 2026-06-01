@@ -93,7 +93,6 @@ async function initDB() {
         searched_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // Tabla de tokens de admin (persistente entre reinicios)
     await dbRun(`CREATE TABLE IF NOT EXISTS admin_tokens (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL,
@@ -197,38 +196,25 @@ async function verifyUserToken(req, res, next) {
     }
 }
 
-// Tokens de admin en memoria (válidos 24h, se limpian al reiniciar)
-const activeAdminTokens = new Map();
-
 async function verifyAdmin(req, res, next) {
     const token = req.headers['x-admin-token'];
     if (!token) return res.status(401).json({ error: 'No autorizado' });
 
     try {
-        // Buscar en tokens activos en memoria
-        if (activeAdminTokens.has(token)) {
-            const adminData = activeAdminTokens.get(token);
-            if (Date.now() - adminData.createdAt < 24 * 60 * 60 * 1000) {
-                req.admin = adminData.admin;
-                return next();
-            } else {
-                activeAdminTokens.delete(token);
-            }
+        const tokenRow = await dbGet(
+            "SELECT * FROM admin_tokens WHERE token = ? AND expires_at > ?",
+            [token, Date.now()]
+        );
+        if (!tokenRow) {
+            return res.status(401).json({ error: 'Sesión expirada. Vuelve a introducir el PIN.' });
         }
-
-        // Fallback: decodificar token
-        const decoded = Buffer.from(token, 'base64').toString('utf-8');
-        const colonIdx = decoded.lastIndexOf(':');
-        if (colonIdx === -1) return res.status(401).json({ error: 'Token inválido' });
-        const username = decoded.substring(0, colonIdx);
-
-        const admin = await dbGet("SELECT * FROM admins WHERE username = ?", [username]);
-        if (!admin) return res.status(401).json({ error: 'Token inválido. Vuelve a iniciar sesión.' });
-
+        const admin = await dbGet("SELECT * FROM admins WHERE username = ?", [tokenRow.username]);
+        if (!admin) return res.status(401).json({ error: 'Admin no encontrado' });
         req.admin = admin;
         next();
     } catch (e) {
-        res.status(401).json({ error: 'Token inválido' });
+        console.error('verifyAdmin error:', e.message);
+        res.status(401).json({ error: 'Error de autenticación: ' + e.message });
     }
 }
 
@@ -358,13 +344,11 @@ app.post('/api/admin/login', async (req, res) => {
 
         if (bcrypt.compareSync(password, admin.password)) {
             const token = Buffer.from(`${username}:${Date.now()}:${Math.random()}`).toString('base64');
-            const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000; // 7 días
-            // Guardar token en Turso — persiste entre reinicios de Railway
+            const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
             await dbRun(
                 "INSERT INTO admin_tokens (username, token, expires_at) VALUES (?, ?, ?)",
                 [username, token, expiresAt]
             );
-            // Limpiar tokens expirados
             await dbRun("DELETE FROM admin_tokens WHERE expires_at < ?", [Date.now()]);
             res.json({ token, username: admin.username });
         } else {
