@@ -187,18 +187,9 @@
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
     </style>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <style>
-        .particle-bg { position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
-        .pt { position: absolute; width: 2px; height: 2px; background: #00f5ff; border-radius: 50%; }
-        .scan-line { position: fixed; left: 0; width: 100%; height: 1px; background: linear-gradient(90deg, transparent, #00f5ff 50%, transparent); pointer-events: none; z-index: 9998; opacity: 0; top: 0; }
-    </style>
 </head>
 <body>
     <div class="glass-bg"></div>
-    <div class="particle-bg" id="ptbg"></div>
-    <div class="scan-line" id="scanLine"></div>
     <div class="login-card">
         <h2>SYNTHΛ</h2>
         
@@ -334,76 +325,6 @@
         if (localStorage.getItem('authToken')) {
             window.location.href = '/index.html';
         }
-    </script>
-
-    <script>
-    window.addEventListener('load', function() {
-        if (typeof gsap === 'undefined') return;
-
-        // Partículas
-        const bg = document.getElementById('ptbg');
-        for (let i = 0; i < 25; i++) {
-            const d = document.createElement('div');
-            d.className = 'pt';
-            d.style.left = Math.random()*100 + 'vw';
-            d.style.top  = Math.random()*100 + 'vh';
-            d.style.opacity = 0;
-            bg.appendChild(d);
-            gsap.to(d, {
-                y: -(60 + Math.random()*120),
-                x: (Math.random()-.5)*50,
-                opacity: Math.random()*.35 + .05,
-                duration: 3 + Math.random()*5,
-                repeat: -1, yoyo: true,
-                delay: Math.random()*4,
-                ease: 'sine.inOut'
-            });
-        }
-
-        // Scan line
-        const sl = document.getElementById('scanLine');
-        function runScan() {
-            gsap.fromTo(sl,
-                { top: '0%', opacity: .5 },
-                { top: '100%', opacity: 0, duration: 2.8, ease: 'none',
-                  onComplete: () => setTimeout(runScan, 4000 + Math.random()*4000) }
-            );
-        }
-        setTimeout(runScan, 1500);
-
-        // Entrada del card — SIN tocar opacity en CSS
-        const card = document.querySelector('.login-card');
-        gsap.from(card, { y: 35, opacity: 0, duration: .7, ease: 'power3.out', delay: .1 });
-        gsap.from('h2', { y: -8, opacity: 0, duration: .5, ease: 'power3.out', delay: .3 });
-        gsap.from('#loginForm input, #loginForm button, #loginForm .switch, .price-badge', {
-            y: 10, opacity: 0, stagger: .06, duration: .4, ease: 'power2.out', delay: .45
-        });
-
-        // Glitch en h2 cada X segundos
-        function glitch() {
-            const h2 = document.querySelector('h2');
-            if (!h2) return;
-            gsap.timeline()
-                .to(h2, { skewX: 8, x: -4, duration: .04 })
-                .to(h2, { skewX: -5, x: 3, duration: .04 })
-                .to(h2, { skewX: 0, x: 0, duration: .04 });
-            setTimeout(glitch, 5000 + Math.random()*8000);
-        }
-        setTimeout(glitch, 3000);
-
-        // Hover inputs
-        document.querySelectorAll('input').forEach(el => {
-            el.addEventListener('focus', () => gsap.to(el, { scale: 1.01, duration: .15 }));
-            el.addEventListener('blur',  () => gsap.to(el, { scale: 1,    duration: .15 }));
-        });
-
-        // Press en botones — sin escala en mouseenter para no bloquear clics
-        document.querySelectorAll('button').forEach(btn => {
-            btn.addEventListener('mousedown', () => gsap.to(btn, { scale: .97, duration: .08 }));
-            btn.addEventListener('mouseup',   () => gsap.to(btn, { scale: 1,   duration: .12, ease: 'back.out(2)' }));
-            btn.addEventListener('mouseleave',() => gsap.to(btn, { scale: 1,   duration: .12 }));
-        });
-    });
     </script>
 </body>
 </html>

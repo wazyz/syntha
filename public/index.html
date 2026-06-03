@@ -50,18 +50,9 @@
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
     </style>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <style>
-        .particle-bg { position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
-        .pt { position: absolute; width: 2px; height: 2px; background: #00f5ff; border-radius: 50%; }
-        .scan-line { position: fixed; left: 0; width: 100%; height: 1px; background: linear-gradient(90deg, transparent, #00f5ff 50%, transparent); pointer-events: none; z-index: 9998; opacity: 0; top: 0; }
-    </style>
 </head>
 <body>
     <div class="glass-bg"></div>
-    <div class="particle-bg" id="ptbg"></div>
-    <div class="scan-line" id="scanLine"></div>
     
     <div class="user-badge" id="userBadge">
         <i class="fas fa-user-circle"></i> <span id="usernameDisplay">Cargando...</span>
@@ -330,83 +321,6 @@
         checkSession();
         fetchStats();
         setInterval(fetchStats, 30000);
-    </script>
-
-    <script>
-    window.addEventListener('load', function() {
-        if (typeof gsap === 'undefined') return;
-
-        // Partículas
-        const bg = document.getElementById('ptbg');
-        for (let i = 0; i < 25; i++) {
-            const d = document.createElement('div');
-            d.className = 'pt';
-            d.style.left = Math.random()*100 + 'vw';
-            d.style.top  = Math.random()*100 + 'vh';
-            d.style.opacity = 0;
-            bg.appendChild(d);
-            gsap.to(d, {
-                y: -(80 + Math.random()*100), x: (Math.random()-.5)*60,
-                opacity: Math.random()*.35 + .05,
-                duration: 4 + Math.random()*5,
-                repeat: -1, yoyo: true,
-                delay: Math.random()*4, ease: 'sine.inOut'
-            });
-        }
-
-        // Scan
-        const sl = document.getElementById('scanLine');
-        function runScan() {
-            gsap.fromTo(sl, { top:'0%', opacity:.5 }, {
-                top:'100%', opacity:0, duration:3, ease:'none',
-                onComplete: () => setTimeout(runScan, 5000+Math.random()*4000)
-            });
-        }
-        setTimeout(runScan, 1000);
-
-        // Entrada — from() no bloquea clics porque no pone opacity:0 en CSS
-        gsap.from('.header',          { y:25, opacity:0, duration:.6, ease:'power3.out', delay:.1 });
-        gsap.from('.search-panel',    { y:25, opacity:0, duration:.6, ease:'power3.out', delay:.25 });
-        gsap.from('.results-section', { y:25, opacity:0, duration:.6, ease:'power3.out', delay:.4 });
-        gsap.from('.footer-stats',    { y:20, opacity:0, duration:.5, ease:'power3.out', delay:.5 });
-
-        // Glitch logo
-        function glitch() {
-            const logo = document.querySelector('.glitch');
-            if (!logo) return;
-            gsap.timeline()
-                .to(logo, { skewX:10, x:-5, color:'#ff00c8', duration:.04 })
-                .to(logo, { skewX:-6, x:4,  color:'#00f5ff', duration:.04 })
-                .to(logo, { skewX:0,  x:0,  color:'#00f5ff', duration:.04 });
-            setTimeout(glitch, 6000+Math.random()*8000);
-        }
-        setTimeout(glitch, 2500);
-
-        // Animar result cards cuando llegan
-        const obs = new MutationObserver(() => {
-            const cards = document.querySelectorAll('.result-card:not(.gsap-done)');
-            if (!cards.length) return;
-            cards.forEach(c => c.classList.add('gsap-done'));
-            gsap.from(cards, { opacity:0, x:-12, stagger:.04, duration:.3, ease:'power2.out' });
-        });
-        const rc = document.getElementById('resultsContainer');
-        if (rc) obs.observe(rc, { childList:true });
-
-        // Hover tabs — solo color, sin scale que rompa layout
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const tab = document.getElementById('tab-' + btn.dataset.tab);
-                if (tab) gsap.from(tab, { opacity:0, x:8, duration:.2, ease:'power2.out' });
-            });
-        });
-
-        // Press botones principales
-        document.querySelectorAll('.btn-primary').forEach(btn => {
-            btn.addEventListener('mousedown', () => gsap.to(btn, { scale:.97, duration:.08 }));
-            btn.addEventListener('mouseup',   () => gsap.to(btn, { scale:1,   duration:.12, ease:'back.out(2)' }));
-            btn.addEventListener('mouseleave',() => gsap.to(btn, { scale:1,   duration:.1 }));
-        });
-    });
     </script>
 </body>
 </html>

@@ -637,18 +637,9 @@
             .admin-header h1 { font-size: 1rem; }
         }
     </style>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <style>
-        .particle-bg { position: fixed; inset: 0; pointer-events: none; z-index: 1; overflow: hidden; }
-        .pt { position: absolute; width: 2px; height: 2px; background: #00f5ff; border-radius: 50%; }
-        .scan-line { position: fixed; left: 0; width: 100%; height: 1px; background: linear-gradient(90deg, transparent, #00f5ff 50%, transparent); pointer-events: none; z-index: 9998; opacity: 0; top: 0; }
-    </style>
 </head>
 <body>
     <div class="glass-bg"></div>
-    <div class="particle-bg" id="ptbg"></div>
-    <div class="scan-line" id="scanLine"></div>
 
     <!-- Login Overlay -->
     <div id="loginOverlay" class="login-overlay">
@@ -1136,87 +1127,6 @@
                 localStorage.removeItem('adminRole');
             }
         })();
-    </script>
-
-    <script>
-    window.addEventListener('load', function() {
-        if (typeof gsap === 'undefined') return;
-
-        // Partículas
-        const bg = document.getElementById('ptbg');
-        for (let i = 0; i < 25; i++) {
-            const d = document.createElement('div');
-            d.className = 'pt';
-            d.style.left = Math.random()*100 + 'vw';
-            d.style.top  = Math.random()*100 + 'vh';
-            d.style.opacity = 0;
-            bg.appendChild(d);
-            gsap.to(d, {
-                y: -(80 + Math.random()*100), x: (Math.random()-.5)*60,
-                opacity: Math.random()*.35 + .05,
-                duration: 4+Math.random()*5,
-                repeat:-1, yoyo:true,
-                delay:Math.random()*4, ease:'sine.inOut'
-            });
-        }
-
-        // Scan
-        const sl = document.getElementById('scanLine');
-        function runScan() {
-            gsap.fromTo(sl, { top:'0%', opacity:.5 }, {
-                top:'100%', opacity:0, duration:3, ease:'none',
-                onComplete: () => setTimeout(runScan, 5000+Math.random()*5000)
-            });
-        }
-        setTimeout(runScan, 800);
-
-        // Glitch en h1 del panel
-        function glitch() {
-            const h1 = document.querySelector('.admin-header h1');
-            if (!h1) return;
-            gsap.timeline()
-                .to(h1, { skewX:6, x:-3, duration:.04 })
-                .to(h1, { skewX:-4, x:2, duration:.04 })
-                .to(h1, { skewX:0,  x:0, duration:.04 });
-            setTimeout(glitch, 7000+Math.random()*8000);
-        }
-        setTimeout(glitch, 3500);
-
-        // Animar dashboard cuando aparece el contenido
-        // Escuchar cuando adminContent se hace visible
-        const contentEl = document.getElementById('adminContent');
-        if (contentEl) {
-            const visObs = new MutationObserver((mutations) => {
-                mutations.forEach(m => {
-                    if (m.attributeName === 'style' && contentEl.style.display !== 'none') {
-                        gsap.from('.admin-header', { y:20, opacity:0, duration:.5, ease:'power3.out', delay:.05 });
-                        gsap.from('.stat-card',    { y:20, opacity:0, scale:.94, stagger:.07, duration:.4, ease:'power3.out', delay:.15 });
-                        gsap.from('.upload-area',  { y:15, opacity:0, duration:.4, ease:'power3.out', delay:.45 });
-                    }
-                });
-            });
-            visObs.observe(contentEl, { attributes: true });
-        }
-
-        // Animar user-cards cuando se renderizan
-        const bodyObs = new MutationObserver(() => {
-            document.querySelectorAll('.user-card:not(.gsap-done)').forEach(c => {
-                c.classList.add('gsap-done');
-                gsap.from(c, { opacity:0, x:-10, duration:.25, ease:'power2.out' });
-            });
-        });
-        bodyObs.observe(document.body, { childList:true, subtree:true });
-
-        // Press en botones del admin
-        document.addEventListener('mousedown', e => {
-            const btn = e.target.closest('.btn');
-            if (btn) gsap.to(btn, { scale:.97, duration:.08 });
-        });
-        document.addEventListener('mouseup', e => {
-            const btn = e.target.closest('.btn');
-            if (btn) gsap.to(btn, { scale:1, duration:.12, ease:'back.out(2)' });
-        });
-    });
     </script>
 </body>
 </html>
