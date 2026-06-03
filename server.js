@@ -101,6 +101,18 @@ async function initDB() {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
+    // Índices para búsquedas rápidas
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_domain ON credentials(domain)');
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_email  ON credentials(email)');
+    await dbRun('CREATE INDEX IF NOT EXISTS idx_line   ON credentials(line)');
+
+    // Caché del contador total
+    await dbRun(`CREATE TABLE IF NOT EXISTS stats_cache (
+        key TEXT PRIMARY KEY,
+        value INTEGER,
+        updated_at INTEGER
+    )`);
+
     // Crear admin por defecto si no existe
     const adminExists = await dbGet("SELECT id FROM admins WHERE username = ?", ['admin']);
     if (!adminExists) {
@@ -274,10 +286,25 @@ app.post('/api/verify', verifyUserToken, (req, res) => {
     res.json({ valid: true, user: req.user });
 });
 
+// Caché en memoria para stats — se refresca cada 5 minutos
+let statsCache = { total: null, updatedAt: 0 };
+const STATS_TTL = 5 * 60 * 1000; // 5 minutos
+
 app.get('/api/stats', async (req, res) => {
     try {
-        const row = await dbGet("SELECT COUNT(*) as total FROM credentials");
-        res.json({ total_credentials: Number(row?.total) || 0 });
+        const now = Date.now();
+        if (statsCache.total !== null && now - statsCache.updatedAt < STATS_TTL) {
+            return res.json({ total_credentials: statsCache.total });
+        }
+        // Usar caché de Turso si existe, si no contar
+        const cached = await dbGet("SELECT value FROM stats_cache WHERE key = 'total_credentials'");
+        if (cached) {
+            statsCache = { total: Number(cached.value), updatedAt: now };
+        } else {
+            const row = await dbGet("SELECT COUNT(*) as total FROM credentials");
+            statsCache = { total: Number(row?.total) || 0, updatedAt: now };
+        }
+        res.json({ total_credentials: statsCache.total });
     } catch (e) {
         res.status(500).json({ error: e.message });
     }
@@ -292,7 +319,7 @@ app.get('/api/search/domain', verifyUserToken, async (req, res) => {
     const cleanDomain = domain.toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     try {
         const rows = await dbAll(
-            "SELECT id, line, source_file FROM credentials WHERE domain LIKE ? ORDER BY id LIMIT 500",
+            "SELECT id, line, source_file FROM credentials WHERE domain LIKE ? ORDER BY id LIMIT 500", // idx_domain
             [`%${cleanDomain}%`]
         );
         dbRun("INSERT INTO search_stats (user_id, query, query_type, result_count) VALUES (?, ?, ?, ?)",
@@ -418,6 +445,12 @@ app.post('/api/admin/upload', verifyAdmin, upload.single('file'), async (req, re
             "INSERT INTO upload_logs (filename, lines_added, uploaded_by) VALUES (?, ?, ?)",
             [req.file.originalname, added, req.admin.username]
         );
+
+        // Actualizar caché del total
+        await dbRun(
+            "INSERT OR REPLACE INTO stats_cache (key, value, updated_at) SELECT 'total_credentials', COUNT(*), unixepoch() FROM credentials"
+        );
+        statsCache = { total: null, updatedAt: 0 }; // invalidar caché en memoria
 
         await fs.remove(req.file.path);
         console.log(`   ✅ ${added} añadidas, ${skipped} duplicadas`);
