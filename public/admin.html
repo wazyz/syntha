@@ -637,6 +637,13 @@
             .admin-header h1 { font-size: 1rem; }
         }
     </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <style>
+        .admin-header, .stats-grid, .upload-area { opacity: 0; }
+        .particle { position: fixed; width: 2px; height: 2px; background: #00f5ff; border-radius: 50%; pointer-events: none; z-index: 1; }
+        .glitch-line { position: fixed; left: 0; width: 100%; height: 1px; background: linear-gradient(90deg, transparent, #00f5ff, transparent); pointer-events: none; z-index: 9998; opacity: 0; }
+    </style>
 </head>
 <body>
     <div class="glass-bg"></div>
@@ -1127,6 +1134,98 @@
                 localStorage.removeItem('adminRole');
             }
         })();
+    </script>
+
+    <script>
+    // Partículas
+    for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.cssText = `left:${Math.random()*100}vw; top:${Math.random()*100}vh; opacity:0`;
+        document.body.appendChild(p);
+        gsap.to(p, {
+            y: -(80 + Math.random()*100), x: (Math.random()-0.5)*80,
+            opacity: Math.random()*0.4+0.05,
+            duration: 4+Math.random()*5, repeat:-1, yoyo:true,
+            delay: Math.random()*4, ease:'sine.inOut'
+        });
+    }
+
+    // Scan
+    const scan = document.createElement('div');
+    scan.className = 'glitch-line';
+    document.body.appendChild(scan);
+    function runScan() {
+        gsap.fromTo(scan, { top:'0%', opacity:0.5 }, {
+            top:'100%', opacity:0, duration:3, ease:'none',
+            onComplete: () => setTimeout(runScan, 5000+Math.random()*5000)
+        });
+    }
+    setTimeout(runScan, 600);
+
+    // Entrada dashboard
+    gsap.set(['.admin-header','.stats-grid','.upload-area'], { y: 25 });
+
+    // Se ejecuta cuando el dashboard ya está visible
+    const origLoadDashboard = window.loadDashboard;
+    window.loadDashboard = async function() {
+        await origLoadDashboard.apply(this, arguments);
+        const tl = gsap.timeline({ defaults: { ease:'power3.out' } });
+        tl.to('.admin-header',  { opacity:1, y:0, duration:0.6, delay:0.1 })
+          .to('.stats-grid',    { opacity:1, y:0, duration:0.5 }, '-=0.3')
+          .to('.upload-area',   { opacity:1, y:0, duration:0.5 }, '-=0.2')
+          .from('.stat-card',   { opacity:0, scale:0.92, stagger:0.08, duration:0.4 }, '-=0.3');
+    };
+
+    // Animar user-cards cuando aparecen
+    const observer = new MutationObserver(() => {
+        document.querySelectorAll('.user-card:not(.animated)').forEach(c => {
+            c.classList.add('animated');
+            gsap.from(c, { opacity:0, x:-12, duration:0.3, ease:'power2.out' });
+        });
+    });
+    observer.observe(document.body, { childList:true, subtree:true });
+
+    // Hover botones
+    document.addEventListener('mouseover', e => {
+        const btn = e.target.closest('.btn, .btn-icon');
+        if (btn) gsap.to(btn, { scale:1.04, duration:0.15 });
+    });
+    document.addEventListener('mouseout', e => {
+        const btn = e.target.closest('.btn, .btn-icon');
+        if (btn) gsap.to(btn, { scale:1, duration:0.15 });
+    });
+
+    // Glitch en el título del panel
+    function glitchTitle() {
+        const h1 = document.querySelector('.admin-header h1');
+        if (!h1) return;
+        const t = gsap.timeline();
+        t.to(h1, { skewX:6, x:-3, duration:0.04 })
+         .to(h1, { skewX:-4, x:2, duration:0.04 })
+         .to(h1, { skewX:0, x:0, duration:0.04 });
+        setTimeout(glitchTitle, 7000+Math.random()*8000);
+    }
+    setTimeout(glitchTitle, 3000);
+
+    // Animar contadores de stats con efecto count-up
+    function animateCounters() {
+        document.querySelectorAll('.stat-card h3').forEach(el => {
+            const target = parseInt(el.textContent.replace(/\D/g,'')) || 0;
+            if (target === 0) return;
+            gsap.from({ val: 0 }, {
+                val: target, duration: 1.2, ease: 'power2.out',
+                onUpdate: function() {
+                    el.textContent = Math.round(this.targets()[0].val).toLocaleString();
+                }
+            });
+        });
+    }
+    // Escuchar cuando se actualicen los stats
+    const statsObserver = new MutationObserver(animateCounters);
+    document.querySelectorAll('.stat-card h3').forEach(el =>
+        statsObserver.observe(el, { childList:true, characterData:true, subtree:true })
+    );
     </script>
 </body>
 </html>

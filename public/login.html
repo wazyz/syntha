@@ -187,6 +187,32 @@
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
     </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <style>
+        /* Estado inicial oculto para animaciones */
+        .login-card { opacity: 0; }
+        .glitch-line {
+            position: fixed;
+            left: 0; width: 100%; height: 1px;
+            background: linear-gradient(90deg, transparent, #00f5ff, transparent);
+            pointer-events: none;
+            z-index: 9998;
+            opacity: 0;
+        }
+        @keyframes scan {
+            0% { top: -2px; opacity: 0.7; }
+            100% { top: 100vh; opacity: 0; }
+        }
+        .particle {
+            position: fixed;
+            width: 2px; height: 2px;
+            background: #00f5ff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 1;
+        }
+    </style>
 </head>
 <body>
     <div class="glass-bg"></div>
@@ -325,6 +351,73 @@
         if (localStorage.getItem('authToken')) {
             window.location.href = '/index.html';
         }
+    </script>
+
+    <script>
+    // Crear partículas flotantes
+    for (let i = 0; i < 18; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.cssText = `left:${Math.random()*100}vw; top:${Math.random()*100}vh; opacity:0`;
+        document.body.appendChild(p);
+        gsap.to(p, {
+            y: -(60 + Math.random()*120),
+            x: (Math.random()-0.5)*60,
+            opacity: Math.random()*0.5 + 0.1,
+            duration: 3 + Math.random()*4,
+            repeat: -1,
+            yoyo: true,
+            delay: Math.random()*3,
+            ease: 'sine.inOut'
+        });
+    }
+
+    // Línea de scan
+    const scan = document.createElement('div');
+    scan.className = 'glitch-line';
+    document.body.appendChild(scan);
+    gsap.set(scan, { top: 0, opacity: 0 });
+    function runScan() {
+        gsap.fromTo(scan,
+            { top: '0%', opacity: 0.6 },
+            { top: '100%', opacity: 0, duration: 2.5, ease: 'none',
+              onComplete: () => setTimeout(runScan, 4000 + Math.random()*3000) }
+        );
+    }
+    setTimeout(runScan, 1200);
+
+    // Animación de entrada del card
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+    tl.set('.login-card', { opacity: 0, y: 40, scale: 0.96 })
+      .to('.login-card', { opacity: 1, y: 0, scale: 1, duration: 0.8, delay: 0.2 })
+      .from('h2', { opacity: 0, y: -10, duration: 0.5, letterSpacing: '0.4em' }, '-=0.4')
+      .from('input, button, .switch, .price-badge', {
+          opacity: 0, y: 12, stagger: 0.07, duration: 0.4
+      }, '-=0.2');
+
+    // Glitch ocasional en el h2
+    function glitchTitle() {
+        const h2 = document.querySelector('h2');
+        if (!h2) return;
+        const tl = gsap.timeline();
+        tl.to(h2, { skewX: 8, x: -4, duration: 0.05 })
+          .to(h2, { skewX: -5, x: 3, duration: 0.05 })
+          .to(h2, { skewX: 0, x: 0, duration: 0.05 });
+        setTimeout(glitchTitle, 5000 + Math.random()*8000);
+    }
+    setTimeout(glitchTitle, 3000);
+
+    // Hover en inputs — glow pulse
+    document.querySelectorAll('input').forEach(el => {
+        el.addEventListener('focus', () => gsap.to(el, { scale: 1.01, duration: 0.2 }));
+        el.addEventListener('blur',  () => gsap.to(el, { scale: 1, duration: 0.2 }));
+    });
+
+    // Botón — efecto press
+    document.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('mousedown', () => gsap.to(btn, { scale: 0.97, duration: 0.1 }));
+        btn.addEventListener('mouseup',   () => gsap.to(btn, { scale: 1, duration: 0.15, ease: 'back.out(3)' }));
+    });
     </script>
 </body>
 </html>

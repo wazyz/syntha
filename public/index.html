@@ -50,6 +50,14 @@
         }
         .toast.show { transform: translateX(-50%) translateY(0); }
     </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <style>
+        .header, .search-panel, .results-section, .footer-stats { opacity: 0; }
+        .particle { position: fixed; width: 2px; height: 2px; background: #00f5ff; border-radius: 50%; pointer-events: none; z-index: 1; }
+        .glitch-line { position: fixed; left: 0; width: 100%; height: 1px; background: linear-gradient(90deg, transparent, #00f5ff, transparent); pointer-events: none; z-index: 9998; opacity: 0; }
+        .result-card { transition: none !important; }
+    </style>
 </head>
 <body>
     <div class="glass-bg"></div>
@@ -321,6 +329,84 @@
         checkSession();
         fetchStats();
         setInterval(fetchStats, 30000);
+    </script>
+
+    <script>
+    // Partículas
+    for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.cssText = `left:${Math.random()*100}vw; top:${Math.random()*100}vh; opacity:0`;
+        document.body.appendChild(p);
+        gsap.to(p, {
+            y: -(80 + Math.random()*100), x: (Math.random()-0.5)*80,
+            opacity: Math.random()*0.4 + 0.05,
+            duration: 4 + Math.random()*5, repeat: -1, yoyo: true,
+            delay: Math.random()*4, ease: 'sine.inOut'
+        });
+    }
+
+    // Scan line
+    const scan = document.createElement('div');
+    scan.className = 'glitch-line';
+    document.body.appendChild(scan);
+    function runScan() {
+        gsap.fromTo(scan, { top: '0%', opacity: 0.5 }, {
+            top: '100%', opacity: 0, duration: 3, ease: 'none',
+            onComplete: () => setTimeout(runScan, 5000 + Math.random()*4000)
+        });
+    }
+    setTimeout(runScan, 800);
+
+    // Entrada principal
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+    tl.to('.header',         { opacity: 1, y: 0, duration: 0.7, delay: 0.1 })
+      .to('.search-panel',   { opacity: 1, y: 0, duration: 0.6 }, '-=0.3')
+      .to('.results-section',{ opacity: 1, y: 0, duration: 0.6 }, '-=0.3')
+      .to('.footer-stats',   { opacity: 1, y: 0, duration: 0.5 }, '-=0.2');
+
+    gsap.set(['.header','.search-panel','.results-section','.footer-stats'], { y: 30 });
+
+    // Glitch en logo
+    function glitchLogo() {
+        const logo = document.querySelector('.glitch');
+        if (!logo) return;
+        const t = gsap.timeline();
+        t.to(logo, { skewX: 10, x: -5, color: '#ff00c8', duration: 0.04 })
+         .to(logo, { skewX: -6, x: 4, color: '#00f5ff', duration: 0.04 })
+         .to(logo, { skewX: 0,  x: 0, color: '#00f5ff', duration: 0.04 });
+        setTimeout(glitchLogo, 6000 + Math.random()*8000);
+    }
+    setTimeout(glitchLogo, 2000);
+
+    // Animar result cards cuando aparecen
+    const observer = new MutationObserver(() => {
+        const cards = document.querySelectorAll('.result-card:not(.animated)');
+        if (cards.length) {
+            cards.forEach(c => c.classList.add('animated'));
+            gsap.from(cards, {
+                opacity: 0, x: -15, stagger: 0.04,
+                duration: 0.35, ease: 'power2.out'
+            });
+        }
+    });
+    observer.observe(document.getElementById('resultsContainer'), { childList: true });
+
+    // Hover en botones
+    document.querySelectorAll('.btn, .btn-icon, .tab-btn').forEach(btn => {
+        btn.addEventListener('mouseenter', () => gsap.to(btn, { scale: 1.04, duration: 0.15 }));
+        btn.addEventListener('mouseleave', () => gsap.to(btn, { scale: 1, duration: 0.15 }));
+        btn.addEventListener('mousedown',  () => gsap.to(btn, { scale: 0.96, duration: 0.08 }));
+        btn.addEventListener('mouseup',    () => gsap.to(btn, { scale: 1.04, duration: 0.1, ease: 'back.out(2)' }));
+    });
+
+    // Tab switch con slide
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tab = document.getElementById('tab-' + btn.dataset.tab);
+            if (tab) gsap.from(tab, { opacity: 0, x: 10, duration: 0.25, ease: 'power2.out' });
+        });
+    });
     </script>
 </body>
 </html>
